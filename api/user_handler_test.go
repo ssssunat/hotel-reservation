@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http/httptest"
 	"testing"
@@ -58,10 +59,12 @@ func TestPostUser(t *testing.T) {
 	b, _ := json.Marshal(params)
 	req := httptest.NewRequest("POST", "/", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
+
 	resp, err := app.Test(req)
 	if err != nil {
-		t.Error(err)
+		t.Errorf(err.Error())
 	}
+
 	var user types.User
 	json.NewDecoder(resp.Body).Decode(&user)
 	if len(user.ID) == 0 {
@@ -80,4 +83,56 @@ func TestPostUser(t *testing.T) {
 		t.Errorf("expected email %s but got %s", params.Email, user.Email)
 	}
 }
+
 // TODO GET DELETE UPDATE handlers
+
+func TestGetUsers(t *testing.T) {
+	tdb := setup(t)
+	defer tdb.teardown(t)
+
+	app := fiber.New()
+	userHandler := NewUserHandler(tdb.UserStore)
+	app.Get("/", userHandler.HandleGetUsers)
+
+	users := []types.User {
+		{
+			Email: "john@doe.com",
+			FirstName: "John",
+			LastName: "Doe",
+		},
+		{
+			Email: "jane@doe.com",
+			FirstName: "Jane",
+			LastName: "Doe",
+		},
+	}
+
+	for _, user := range users {
+		_, err := tdb.UserStore.InsertUser(context.Background(), &user)
+		if err != nil {
+			t.Fatalf("failed to create test user:%v", err)
+		}
+	}
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, _ := app.Test(req)
+	fmt.Println(resp.Status)
+
+	var getUsers []types.User
+	if err := json.NewDecoder(resp.Body).Decode(&getUsers); err != nil {
+		t.Fatalf("Failed to decode response body: %v", err)
+	}
+
+	for i, expected := range users {
+		user := getUsers[i]
+		if user.Email != expected.Email {
+			t.Errorf("Expected email %s, but got %s", expected.Email, user.Email)
+		}
+		if user.FirstName != expected.FirstName {
+			t.Errorf("Expected email %s, but got %s", expected.FirstName, user.FirstName)
+		}
+	}
+	fmt.Println(getUsers)
+}

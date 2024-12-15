@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ssssunat/hotel-reservation/api"
@@ -13,9 +14,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Configurationn
+// 1. Mongo enpoint
+// 2. ListenAndress of http Server
+// 3. JWT SECRET	
+
 var config = fiber.Config{
 	ErrorHandler: func(c *fiber.Ctx, err error) error {
-		return c.JSON(map[string]string{"error": err.Error()})
+		if apiError, ok := err.(api.Error); ok {
+			return c.Status(apiError.Code).JSON(apiError)
+		}
+		apiError := api.NewError(http.StatusInternalServerError, err.Error())
+		return c.Status(apiError.Code).JSON(apiError)
 	},
 }
 
@@ -31,19 +41,23 @@ func main() {
 	// handler init
 	var (
 		hotelStore = db.NewMongoHotelStore(client)
-		roomStore = db.NewMongoRoomStore(client, hotelStore)
-		userStore = db.NewMongoUserStore(client)
-		store = &db.Store{
+		roomStore  = db.NewMongoRoomStore(client, hotelStore)
+		userStore  = db.NewMongoUserStore(client)
+		store      = &db.Store{
 			Hotel: hotelStore,
-			Room: roomStore,
-			User: userStore,
+			Room:  roomStore,
+			User:  userStore,
 		}
-		userHandler = api.NewUserHandler(userStore)
+		userHandler  = api.NewUserHandler(userStore)
 		hotelHandler = api.NewHotelHandler(store)
-		app = fiber.New(config)
-		apiv1 = app.Group("api/v1", middleware.JWTAuthentication)
-	
+		AuthHandler  = api.NewAuthHandler(userStore)
+		app          = fiber.New(config)
+		auth         = app.Group("/api")
+		apiv1        = app.Group("api/v1", middleware.JWTAuthentication)
 	)
+
+	//auth
+	auth.Post("/auth", AuthHandler.HandleAuthenticate)
 
 	// user handlers
 	apiv1.Post("/user", userHandler.HandlePostUser)
@@ -56,6 +70,7 @@ func main() {
 	apiv1.Get("/hotel", hotelHandler.HandleGetHotels)
 	apiv1.Get("/hotel/:id", hotelHandler.HandleGetHotel)
 	apiv1.Get("/hotel/:id/rooms", hotelHandler.HandleGetRooms)
+
+	//apiv1.Post("/room/:id/book")
 	app.Listen(*listenAddr)
 }
-

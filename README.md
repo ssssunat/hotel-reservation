@@ -6,7 +6,7 @@
 - authen and autoriz -> JWT tokens
 - Hotels -> CRUD API -> JSON
 - Rooms -> CRUD API -> JSON
-
+- Scripts -> database management -> seeding, migration
 
 
 

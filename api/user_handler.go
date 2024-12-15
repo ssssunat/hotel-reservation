@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/ssssunat/hotel-reservation/db"
@@ -24,11 +25,14 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	var params types.CreateUserParams
 	if err := c.BodyParser(&params); err != nil {
+		fmt.Println("ERROR: failed to parse request body")
 		return err
 	}
-	if errors := params.Validate(); len(errors) >= 0 {
+	if errors := params.Validate(); len(errors) > 0 {
+		fmt.Println("ERROR: failed to validate", errors)
 		return c.JSON(errors)
 	}
+	
 	user, err := types.NewUserFromParams(params)
 	if err != nil {
 		return err
@@ -37,6 +41,7 @@ func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("INFO: User successfully created with email")
 	return c.JSON(insertedUser)
 }
 
