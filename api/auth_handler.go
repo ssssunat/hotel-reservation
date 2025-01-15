@@ -77,7 +77,7 @@ func createTokenFromUser(user *types.User) string {
 	now := time.Now()
 	expires := now.Add(time.Hour * 4).Unix()
 	claims := jwt.MapClaims{
-		"userID":  user.ID,
+		"id":  user.ID,
 		"email":   user.Email,
 		"expires": expires,
 	}
