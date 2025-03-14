@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"os"
 
 	"github.com/ssssunat/hotel-reservation/types"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,6 +24,8 @@ type MongoBookingStore struct {
 }
 
 func NewMongoBookingStore(client *mongo.Client) *MongoBookingStore {
+	DBNAME := os.Getenv(MongoDBNameEnvName)
+
 	return &MongoBookingStore{
 		client: client,
 		coll:   client.Database(DBNAME).Collection("bookings"),
@@ -50,8 +53,7 @@ func (s *MongoBookingStore) GetBookings(ctx context.Context, filter bson.M) ([]*
 	return bookings, nil
 }
 
-	
-func (s *MongoBookingStore)  GetBookingByID(ctx context.Context, id string) (*types.Booking, error) {
+func (s *MongoBookingStore) GetBookingByID(ctx context.Context, id string) (*types.Booking, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err

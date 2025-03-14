@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/ssssunat/hotel-reservation/db"
 	"github.com/ssssunat/hotel-reservation/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,7 +26,7 @@ func seedUser(isAdmin bool, fName, lName, email, password string) {
 		Email:     email,
 		FirstName: fName,
 		LastName:  lName,
-		Password:  password,	
+		Password:  password,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -77,19 +79,24 @@ func main() {
 	seedHotel("Belucia", "France", 3)
 	seedHotel("The cozy hotel", "Netherladns", 4)
 	seedHotel("Dont die in your sleep", "London", 1)
-	seedUser(true, "james", "foo", "james@foo.com", "supersecure")
-	seedUser(true, "james", "foo", "james@foo.com", "supersecure")
+	seedUser(false, "james", "foo", "james@foo.com", "supersecure")
+	seedUser(true, "admin", "admin", "admin@admin.com", "supersecure")
 }
 
 func init() {
-	var err error
-	ctx := context.Background()
-
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
+	var (
+		ctx           = context.Background()
+		mongoEndpoint = os.Getenv("MONGO_DB_URL")
+		DBNAME        = os.Getenv(db.MongoDBNameEnvName)
+	)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := client.Database(db.DBNAME).Drop(ctx); err != nil {
+	if err := client.Database(DBNAME).Drop(ctx); err != nil {
 		log.Fatal(err)
 	}
 	hotelStore = db.NewMongoHotelStore(client)

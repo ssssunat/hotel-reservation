@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"log"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 	"github.com/ssssunat/hotel-reservation/db"
 	"github.com/ssssunat/hotel-reservation/types"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,8 +19,7 @@ import (
 )
 
 const (
-	testdburi = "mongodb://localhost:27017"
-	dbname    = "hotel-reservation-test"
+	dbname = "hotel-reservation-test"
 )
 
 type testdb struct {
@@ -32,6 +33,10 @@ func (tdb *testdb) teardown(t *testing.T) {
 }
 
 func setup(t *testing.T) *testdb {
+	if err := godotenv.Load("../.env"); err != nil {
+		t.Fatal(err)
+	}
+	testdburi := os.Getenv("MONGO_DB_URL_TEST")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(testdburi))
 	if err != nil {
 		log.Fatal(err)
@@ -94,16 +99,16 @@ func TestGetUsers(t *testing.T) {
 	userHandler := NewUserHandler(tdb.UserStore)
 	app.Get("/", userHandler.HandleGetUsers)
 
-	users := []types.User {
+	users := []types.User{
 		{
-			Email: "john@doe.com",
+			Email:     "john@doe.com",
 			FirstName: "John",
-			LastName: "Doe",
+			LastName:  "Doe",
 		},
 		{
-			Email: "jane@doe.com",
+			Email:     "jane@doe.com",
 			FirstName: "Jane",
-			LastName: "Doe",
+			LastName:  "Doe",
 		},
 	}
 
@@ -136,3 +141,4 @@ func TestGetUsers(t *testing.T) {
 	}
 	fmt.Println(getUsers)
 }
+
